@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pathfinder — Wittenberg Academic Advisor</title>
+<style>
+:root{--red:#CC0000;--red-h:#aa0000;--red-dim:rgba(204,0,0,0.08);--red-bd:rgba(204,0,0,0.18);
+--black:#111;--white:#fff;--off:#f6f6f6;--gray:#efefef;--bd:#e0e0e0;
+--text:#111;--muted:#888;--dim:#444;--sh:0 1px 6px rgba(0,0,0,0.07);--sh-md:0 4px 18px rgba(0,0,0,0.10);
+--done-bg:rgba(34,197,94,0.08);--done-bd:rgba(34,197,94,0.25);--done-text:#15803d;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--off);color:var(--text);font-size:14px;height:100vh;overflow:hidden;}
+.topbar{height:3px;background:linear-gradient(90deg,var(--black),var(--red));}
+header{height:56px;background:var(--white);border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:100;box-shadow:var(--sh);}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand-mark{width:32px;height:32px;background:var(--black);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--white);}
+.brand-name{font-size:17px;font-weight:800;color:var(--black);}
+.brand-name span{color:var(--red);}
+.brand-sub{font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;}
+.nav{display:flex;gap:3px;}
+.nav-btn{padding:5px 13px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--muted);text-transform:uppercase;}
+.nav-btn:hover{background:var(--gray);color:var(--text);}
+.nav-btn.active{background:var(--black);color:var(--white);}
+.hdr-right{display:flex;align-items:center;gap:8px;}
+.mpill{padding:4px 12px;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid var(--bd);background:var(--white);color:var(--muted);text-transform:uppercase;}
+.mpill.ds.on{background:var(--black);color:var(--white);border-color:var(--black);}
+.mpill.fin.on{background:var(--red);color:var(--white);border-color:var(--red);}
+.hbtn{height:28px;padding:0 11px;border-radius:6px;border:1px solid var(--bd);background:var(--white);color:var(--muted);cursor:pointer;font-size:11px;font-weight:600;}
+.hbtn:hover{border-color:var(--red);color:var(--red);}
+.api-dot{width:7px;height:7px;border-radius:50%;background:#ccc;display:inline-block;margin-right:4px;}
+.api-dot.on{background:#22c55e;box-shadow:0 0 5px rgba(34,197,94,0.5);}
+.api-dot.off{background:var(--red);}
+.api-lbl{font-size:10px;color:var(--muted);}
+.layout{display:grid;grid-template-columns:340px 1fr;height:calc(100vh - 59px);}
+.sidebar{border-right:1px solid var(--bd);display:flex;flex-direction:column;background:var(--white);overflow:hidden;}
+.sb-students{padding:12px;border-bottom:1px solid var(--bd);overflow-y:auto;max-height:220px;}
+.sb-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:8px;}
+.stu-card{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;border:1px solid transparent;cursor:pointer;margin-bottom:4px;}
+.stu-card:hover{background:var(--off);border-color:var(--bd);}
+.stu-card.sel{background:var(--red-dim);border-color:var(--red-bd);}
+.stu-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--white);flex-shrink:0;}
+.av-ds{background:var(--black);} .av-fin{background:var(--red);}
+.stu-name{font-size:12.5px;font-weight:600;}
+.stu-meta{font-size:10px;color:var(--muted);margin-top:1px;}
+.stu-badge{font-size:8.5px;font-weight:700;padding:1px 6px;border-radius:3px;text-transform:uppercase;}
+.bd-ds{background:rgba(17,17,17,0.08);color:var(--black);}
+.bd-fin{background:var(--red-dim);color:var(--red);}
+.chat-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.chat-hdr{padding:11px 14px 9px;border-bottom:1px solid var(--bd);}
+.chat-title{font-size:15px;font-weight:800;}
+.chat-sub{font-size:9.5px;color:var(--muted);text-transform:uppercase;margin-top:1px;}
+.chat-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:10px;}
+.msg{animation:mIn 0.22s ease-out;}
+@keyframes mIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{align-self:flex-end;max-width:90%;}
+.msg.ai{align-self:flex-start;max-width:94%;}
+.msg-lbl{font-size:9px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:3px;}
+.msg.user .msg-lbl{text-align:right;}
+.bubble{padding:9px 12px;border-radius:10px;font-size:12.5px;line-height:1.6;word-wrap:break-word;}
+.msg.user .bubble{background:var(--red-dim);border:1px solid var(--red-bd);border-bottom-right-radius:3px;}
+.msg.ai .bubble{background:var(--white);border:1px solid var(--bd);border-bottom-left-radius:3px;box-shadow:var(--sh);}
+.ai-row{display:flex;align-items:center;gap:5px;margin-bottom:3px;}
+.ai-dot{width:5px;height:5px;border-radius:50%;background:var(--red);}
+.ai-tag{font-size:9px;text-transform:uppercase;letter-spacing:0.8px;color:var(--red);font-weight:700;}
+.td{width:5px;height:5px;border-radius:50%;background:var(--red);animation:td 1s infinite;display:inline-block;}
+.td:nth-child(2){animation-delay:.2s}.td:nth-child(3){animation-delay:.4s}
+@keyframes td{0%,100%{opacity:.2;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+.chips{padding:8px 12px 5px;border-top:1px solid var(--bd);display:flex;flex-wrap:wrap;gap:4px;}
+.chip{font-size:9.5px;padding:3px 8px;border-radius:5px;border:1px solid var(--bd);background:var(--white);color:var(--muted);cursor:pointer;font-weight:500;}
+.chip:hover{border-color:var(--red);color:var(--red);}
+.chat-foot{padding:10px 12px;border-top:1px solid var(--bd);display:flex;gap:7px;align-items:flex-end;}
+.chat-in{flex:1;background:var(--off);border:1px solid var(--bd);border-radius:8px;padding:8px 11px;color:var(--text);font-family:inherit;font-size:12.5px;resize:none;outline:none;min-height:38px;max-height:90px;line-height:1.5;}
+.chat-in:focus{border-color:var(--red-bd);background:var(--white);}
+.send{width:38px;height:38px;border-radius:8px;background:var(--red);border:none;color:var(--white);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.send:hover{background:var(--red-h);}
+.send:disabled{opacity:.4;}
+.main-panel{overflow-y:auto;background:var(--off);}
+.panel{padding:24px 28px;display:none;}
+.panel.active{display:block;}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:12px;text-align:center;opacity:.45;}
+.empty-icon{font-size:48px;}
+.empty-title{font-size:22px;font-weight:800;color:var(--dim);}
+.empty-sub{font-size:13px;color:var(--muted);max-width:320px;line-height:1.6;}
+.pg-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap;}
+.pg-title{font-size:26px;font-weight:800;line-height:1.1;color:var(--black);}
+.pg-title em{color:var(--red);font-style:italic;}
+.pg-meta{font-size:10.5px;color:var(--muted);margin-top:4px;}
+.act-row{display:flex;gap:6px;}
+.abtn{font-size:10.5px;padding:6px 12px;border-radius:7px;border:1px solid var(--bd);background:var(--white);color:var(--muted);cursor:pointer;font-weight:600;}
+.abtn:hover{border-color:var(--red);color:var(--red);}
+.abtn.pri{background:var(--red);color:var(--white);border-color:var(--red);}
+.stats{display:flex;gap:9px;margin-bottom:16px;flex-wrap:wrap;}
+.stat{background:var(--white);border:1px solid var(--bd);border-radius:10px;padding:12px 16px;min-width:88px;box-shadow:var(--sh);}
+.stat-n{font-size:22px;font-weight:800;color:var(--red);line-height:1;}
+.stat-n.b{color:var(--black);}
+.stat-l{font-size:9px;text-transform:uppercase;letter-spacing:0.4px;color:var(--muted);margin-top:3px;}
+.alts-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.alt-card{flex:1;min-width:160px;background:var(--white);border:1px solid var(--bd);border-radius:10px;padding:11px 14px;cursor:pointer;box-shadow:var(--sh);}
+.alt-card:hover{border-color:var(--red-bd);}
+.alt-card.active{border-color:var(--red);background:var(--red-dim);}
+.alt-lbl{font-size:9.5px;font-weight:800;text-transform:uppercase;color:var(--muted);}
+.alt-score{font-size:20px;font-weight:800;color:var(--red);margin-top:3px;}
+.alt-meta{font-size:10px;color:var(--muted);margin-top:2px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.sem{background:var(--white);border:1px solid var(--bd);border-radius:11px;overflow:hidden;box-shadow:var(--sh);}
+.sem-hd{padding:10px 13px;background:var(--gray);border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;}
+.sem-hd.upcoming{background:rgba(204,0,0,0.07);border-bottom:1px solid var(--red-bd);}
+.sem-badge{font-size:8.5px;padding:2px 7px;border-radius:4px;font-weight:700;text-transform:uppercase;margin-left:6px;}
+.sem-badge.up{background:rgba(204,0,0,0.12);color:var(--red);border:1px solid var(--red-bd);}
+.sem-badge.fut{background:rgba(130,130,130,0.1);color:var(--muted);border:1px solid var(--bd);}
+.ctime.tbd{color:#ddd;font-style:italic;}
+.sem-name{font-size:11px;font-weight:800;text-transform:uppercase;}
+.sem-cr{font-size:10px;background:var(--red-dim);border:1px solid var(--red-bd);color:var(--red);padding:2px 8px;border-radius:8px;font-weight:700;}
+.clist{padding:7px;}
+.crow{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;border:1px solid transparent;}
+.crow:hover{background:var(--off);border-color:var(--bd);}
+.crow.completed{background:var(--done-bg);border-color:var(--done-bd);}
+.crow.completed .cn{color:var(--done-text);}
+.crow.completed .ccode{color:var(--done-text);}
+.cbadge{font-size:7.5px;font-weight:800;padding:2px 5px;border-radius:3px;text-transform:uppercase;flex-shrink:0;}
+.cb-core{background:rgba(17,17,17,.08);color:var(--black);border:1px solid rgba(17,17,17,.15);}
+.cb-major{background:var(--red-dim);color:var(--red);border:1px solid var(--red-bd);}
+.cb-elective{background:rgba(130,130,130,.09);color:#555;border:1px solid rgba(130,130,130,.15);}
+.cb-done{background:var(--done-bg);color:var(--done-text);border:1px solid var(--done-bd);}
+.cinfo{flex:1;min-width:0;}
+.ccode{font-size:9px;color:var(--muted);font-family:monospace;}
+.cn{font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ctime{font-size:8.5px;color:#bbb;margin-top:1px;font-family:monospace;}
+.ccr{font-size:10px;color:var(--muted);flex-shrink:0;font-weight:700;}
+.sem-note{padding:5px 12px 8px;font-size:10.5px;color:var(--muted);font-style:italic;border-top:1px solid var(--bd);}
+.warn-box{background:#fffbf0;border:1px solid #f0d080;border-radius:10px;padding:11px 13px;margin-bottom:14px;}
+.warn-ttl{font-size:9.5px;font-weight:700;text-transform:uppercase;color:#a06000;margin-bottom:5px;}
+.warn-item{font-size:11.5px;color:#7a4400;margin-bottom:2px;}
+.cr-box{background:var(--white);border:1px solid var(--bd);border-radius:10px;padding:13px 15px;margin-bottom:14px;box-shadow:var(--sh);}
+.box-ttl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:10px;}
+.cr-row{display:grid;grid-template-columns:100px 1fr 50px;align-items:center;gap:9px;margin-bottom:6px;}
+.cr-lbl{font-size:11px;color:var(--dim);}
+.cr-bg{height:5px;background:var(--gray);border-radius:3px;overflow:hidden;}
+.cr-fill{height:100%;border-radius:3px;transition:width 0.7s ease;}
+.cr-val{font-size:10px;color:var(--muted);text-align:right;}
+.pchain{margin-bottom:16px;}
+.pchain-ttl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:7px;}
+.pflow{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.pnode{padding:6px 10px;border-radius:7px;font-size:10.5px;font-weight:600;border:1px solid var(--bd);background:var(--white);cursor:pointer;color:var(--dim);box-shadow:var(--sh);font-family:monospace;}
+.pnode:hover{border-color:var(--red);color:var(--red);}
+.pnode.nc{border-left:3px solid var(--black);}
+.pnode.nm{border-left:3px solid var(--red);}
+.pnode.ncap{border-left:3px solid var(--red);background:var(--red-dim);color:var(--red);}
+.pnode.done{background:var(--done-bg);border-color:var(--done-bd);color:var(--done-text);}
+.parrow{color:var(--red);font-size:14px;}
+.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.cmp-hd{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:9px;border-bottom:2px solid var(--bd);}
+.cmp-hd.ds{border-color:var(--black);}
+.cmp-hd.fin{border-color:var(--red);}
+.cmp-ttl{font-size:15px;font-weight:800;}
+.cdot{width:10px;height:10px;border-radius:2px;}
+.cmp-sec-ttl{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);margin:14px 0 6px;letter-spacing:0.5px;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+.modal-bg.open{display:flex;}
+.modal{background:var(--white);border-radius:13px;width:420px;max-width:94vw;box-shadow:0 18px 50px rgba(0,0,0,.15);overflow:hidden;}
+.modal-hd{padding:16px 18px;border-bottom:1px solid var(--bd);position:relative;}
+.modal-code{font-family:monospace;font-size:10px;color:var(--muted);margin-bottom:3px;}
+.modal-name{font-size:20px;font-weight:800;line-height:1.2;padding-right:30px;}
+.modal-x{position:absolute;right:14px;top:14px;width:26px;height:26px;border-radius:6px;border:1px solid var(--bd);background:var(--off);color:var(--muted);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;}
+.modal-body{padding:16px 18px;display:flex;flex-direction:column;gap:12px;}
+.mtags{display:flex;gap:7px;flex-wrap:wrap;}
+.mtag{font-size:10.5px;padding:3px 11px;border-radius:16px;font-weight:600;}
+.mt-r{background:var(--red-dim);color:var(--red);border:1px solid var(--red-bd);}
+.mt-b{background:rgba(17,17,17,.07);color:var(--black);border:1px solid rgba(17,17,17,.15);}
+.mt-g{background:var(--gray);color:var(--dim);border:1px solid var(--bd);}
+.mt-done{background:var(--done-bg);color:var(--done-text);border:1px solid var(--done-bd);}
+.msec{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:5px;}
+.pn{font-family:monospace;font-size:10.5px;padding:3px 9px;border-radius:5px;border:1px solid var(--bd);background:var(--off);color:var(--dim);}
+.pa{color:var(--red);}
+.modal-desc{font-size:12.5px;color:var(--dim);line-height:1.65;}
+.off-row{display:flex;gap:6px;flex-wrap:wrap;}
+.off-badge{font-size:9.5px;padding:3px 10px;border-radius:5px;background:var(--gray);color:var(--muted);border:1px solid var(--bd);}
+.expl-box{background:var(--off);border:1px solid var(--bd);border-radius:7px;padding:9px 11px;}
+.expl-txt{font-size:12px;color:var(--dim);line-height:1.6;font-style:italic;}
+</style>
+</head>
+<body>
+<div class="topbar"></div>
+<header>
+  <div class="brand"><div class="brand-mark">PF</div><div><div class="brand-name">Path<span>finder</span></div><div class="brand-sub">Wittenberg University</div></div></div>
+  <div class="nav">
+    <button class="nav-btn active" onclick="switchTab('schedule',this)">Schedule</button>
+    <button class="nav-btn" onclick="switchTab('progress',this)">Progress</button>
+    <button class="nav-btn" onclick="switchTab('prereqmap',this)">Prereq Map</button>
+    <button class="nav-btn" onclick="switchTab('compare',this)">Compare</button>
+  </div>
+  <div class="hdr-right">
+    <div class="mpill ds" id="pds">DS</div>
+    <div class="mpill fin" id="pfin">FIN</div>
+    <button class="hbtn" onclick="exportPDF()">⬇ PDF</button>
+    <button class="hbtn" onclick="clearAll()">↺ Clear</button>
+    <span class="api-dot" id="api-dot"></span><span class="api-lbl" id="api-lbl">Checking...</span>
+  </div>
+</header>
+<div class="layout">
+  <div class="sidebar">
+    <div class="sb-students"><div class="sb-lbl">Demo Students</div><div id="stu-list"></div></div>
+    <div class="chat-wrap">
+      <div class="chat-hdr"><div class="chat-title">AI Advisor</div><div class="chat-sub">Session-Aware · Remembers Context</div></div>
+      <div class="chat-msgs" id="chat-msgs">
+        <div class="msg ai"><div class="ai-row"><div class="ai-dot"></div><div class="ai-tag">Pathfinder</div></div><div class="bubble">👋 Hey! Tell me your name, major, and year — or click a student.</div></div>
+      </div>
+      <div class="chips">
+        <div class="chip" onclick="sendQ('My name is Quintin, I\'m a Data Science sophomore')">DS Sophomore</div>
+        <div class="chip" onclick="sendQ('Finance junior, done with ACCT225 ECON200 MATH131 BUSN330')">Fin Junior</div>
+        <div class="chip" onclick="sendQ('Make my Fridays lighter')">No Fridays</div>
+        <div class="chip" onclick="sendQ('I want to graduate early')">Accelerate</div>
+        <div class="chip" onclick="sendQ('How are my credits looking?')">Progress</div>
+      </div>
+      <div class="chat-foot">
+        <textarea class="chat-in" id="chat-in" placeholder="Ask anything..." rows="1"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}"
+          oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,90)+'px'"></textarea>
+        <button class="send" id="send-btn" onclick="sendMsg()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+      </div>
+    </div>
+  </div>
+  <div class="main-panel">
+    <div class="panel active" id="tab-schedule"><div class="empty" id="empty"><div class="empty-icon">🗺️</div><div class="empty-title">Your degree plan appears here</div><div class="empty-sub">Chat or click a student to start.</div></div><div id="sch-content"></div></div>
+    <div class="panel" id="tab-progress"><div class="empty" id="prog-empty"><div class="empty-icon">📊</div><div class="empty-sub">Generate a schedule first.</div></div><div id="prog-content"></div></div>
+    <div class="panel" id="tab-prereqmap"><div class="pg-hdr"><div><div class="pg-title">Prerequisite <em>Map</em></div></div><div class="act-row"><button class="abtn" onclick="renderMap('data_science')">Data Science</button><button class="abtn pri" onclick="renderMap('finance')">Finance</button></div></div><div id="map-content"><div class="empty" style="height:40%"><div class="empty-icon">🔗</div><div class="empty-sub">Select a major.</div></div></div></div>
+    <div class="panel" id="tab-compare"><div class="pg-hdr"><div><div class="pg-title">Major <em>Comparison</em></div></div></div><div id="cmp-content"><div class="empty" style="height:40%"><div class="empty-sub">Loading...</div></div></div></div>
+  </div>
+</div>
+<div class="modal-bg" id="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal"><div class="modal-hd"><div class="modal-code" id="m-code"></div><div class="modal-name" id="m-name"></div><button class="modal-x" onclick="closeModal()">✕</button></div><div class="modal-body"><div class="mtags" id="m-tags"></div><div><div class="msec">Prerequisites</div><div id="m-prereqs" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center"></div></div><div><div class="msec">Offered</div><div class="off-row" id="m-offered"></div></div><div><div class="msec">Times</div><div class="off-row" id="m-times"></div></div><div><div class="msec">Description</div><div class="modal-desc" id="m-desc"></div></div><div id="m-expl-wrap" style="display:none"><div class="msec">Why Selected</div><div class="expl-box"><div class="expl-txt" id="m-expl"></div></div></div><div id="m-toggle" style="display:none;margin-top:4px"></div></div></div></div>
+<script>
+const API='http://127.0.0.1:8000';
+let S={sessionId:null,major:null,alternatives:[],activeAlt:0,progress:null,loading:false,
+       courses:{},students:[],requirements:{data_science:null,finance:null},
+       explanations:{},completedCourses:new Set()};
+
+// ── COMPLETED COURSE CHECKER (used globally for green coloring) ──
+function isDone(code){return S.completedCourses.has(code);}
+function courseRowClass(code){return isDone(code)?'crow completed':'crow';}
+function courseBadge(code,type){return isDone(code)?'cb-done':`cb-${type==='core'?'core':type==='major'?'major':'elective'}`;}
+
+async function init(){
+  await checkAPI();
+  if(document.getElementById('api-dot').classList.contains('on')){
+    await Promise.all([loadStudents(),loadCourses(),loadRequirements()]);
+    renderStudents(); renderCompare();
+  } else renderStudents();
+}
+
+async function checkAPI(){
+  try{const c=new AbortController();const t=setTimeout(()=>c.abort(),3000);
+    const r=await fetch(`${API}/`,{signal:c.signal});clearTimeout(t);
+    if(r.ok){document.getElementById('api-dot').className='api-dot on';document.getElementById('api-lbl').textContent='Connected';}
+    else throw new Error();
+  }catch{document.getElementById('api-dot').className='api-dot off';document.getElementById('api-lbl').textContent='Offline';
+    addMsg('ai','⚠️ Backend offline. Run: <code>uvicorn main:app --reload --port 8000</code>');}}
+async function loadCourses(){try{const r=await fetch(`${API}/api/courses`);if(r.ok)S.courses=await r.json();}catch{}}
+async function loadStudents(){try{const r=await fetch(`${API}/api/students`);if(r.ok)S.students=await r.json();}catch{}}
+async function loadRequirements(){try{const[ds,fin]=await Promise.all([fetch(`${API}/api/requirements/data_science`).then(r=>r.ok?r.json():null),fetch(`${API}/api/requirements/finance`).then(r=>r.ok?r.json():null)]);S.requirements.data_science=ds;S.requirements.finance=fin;}catch{}}
+
+function renderStudents(){
+  const el=document.getElementById('stu-list');
+  if(!S.students.length){el.innerHTML='<div style="font-size:11px;color:var(--muted);padding:10px;text-align:center">No students (API offline?)</div>';return;}
+  el.innerHTML=S.students.map(s=>{const i=s.student_name.split(' ').map(n=>n[0]).join('');const d=s.major==='data_science';
+    return`<div class="stu-card" onclick='loadStudent(${JSON.stringify(s).replace(/'/g,"&#39;")},this)'><div class="stu-av ${d?'av-ds':'av-fin'}">${i}</div><div style="flex:1;min-width:0"><div class="stu-name">${s.student_name}</div><div class="stu-meta">${s.classification}·${s.completed_courses.length} done${s.is_athlete?' · 🏃 Athlete':''}</div><span class="stu-badge ${d?'bd-ds':'bd-fin'}">${d?'DS':'FIN'}</span></div></div>`;}).join('');
+}
+
+async function loadStudent(s,el){
+  document.querySelectorAll('.stu-card').forEach(c=>c.classList.remove('sel'));
+  if(el)el.classList.add('sel');
+  S.completedCourses=new Set(s.completed_courses||[]);
+  addMsg('user',`Load: ${s.student_name}`);
+  await generateSchedule(s);
+}
+
+function switchTab(tab,btn){document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.getElementById('tab-'+tab).classList.add('active');}
+function qMajor(m){S.major=m;document.getElementById('pds').className='mpill ds'+(m==='data_science'?' on':'');document.getElementById('pfin').className='mpill fin'+(m==='finance'?' on':'');}
+
+function addMsg(role,html){const c=document.getElementById('chat-msgs');const d=document.createElement('div');d.className=`msg ${role}`;d.innerHTML=role==='ai'?`<div class="ai-row"><div class="ai-dot"></div><div class="ai-tag">Pathfinder</div></div><div class="bubble">${html}</div>`:`<div class="msg-lbl">You</div><div class="bubble">${html}</div>`;c.appendChild(d);c.scrollTop=c.scrollHeight;}
+function showTyping(){const c=document.getElementById('chat-msgs');const d=document.createElement('div');d.className='msg ai';d.id='typing';d.innerHTML=`<div class="ai-row"><div class="ai-dot"></div><div class="ai-tag">Pathfinder</div></div><div class="bubble"><div style="display:flex;gap:4px;padding:4px 0"><div class="td"></div><div class="td"></div><div class="td"></div></div></div>`;c.appendChild(d);c.scrollTop=c.scrollHeight;}
+function hideTyping(){const e=document.getElementById('typing');if(e)e.remove();}
+function sendQ(t){document.getElementById('chat-in').value=t;sendMsg();}
+
+// ── CHAT: session-aware ──
+async function sendMsg(){
+  const inp=document.getElementById('chat-in');const text=inp.value.trim();if(!text||S.loading)return;
+  inp.value='';inp.style.height='auto';S.loading=true;document.getElementById('send-btn').disabled=true;
+  addMsg('user',text);showTyping();
+  try{
+    const r=await fetch(`${API}/api/chat`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:text,session_id:S.sessionId})});
+    hideTyping();
+    if(!r.ok){addMsg('ai',`⚠️ HTTP ${r.status}: ${(await r.text()).slice(0,200)}`);return;}
+    const data=await r.json();
+    S.sessionId=data.session_id;
+    addMsg('ai',data.response_text);
+    if(data.session_state?.completed_courses)S.completedCourses=new Set(data.session_state.completed_courses);
+    if(data.schedule){
+      S.alternatives=data.schedule.alternatives||[data.schedule.best];S.activeAlt=0;
+      S.progress=data.progress;S.explanations=buildExplMap(S.alternatives[0]);
+      if(data.session_state?.major)qMajor(data.session_state.major);
+      renderSchedule();renderProgress();renderCompare();
+      if(S.major) renderMap(S.major);
+      document.querySelectorAll('.nav-btn')[0].click();
+    }else if(data.progress){S.progress=data.progress;renderProgress();}
+  }catch(e){hideTyping();addMsg('ai',`⚠️ ${e.message}`);console.error(e);}
+  finally{S.loading=false;document.getElementById('send-btn').disabled=false;}
+}
+
+async function generateSchedule(student){
+  S.loading=true;showTyping();
+  try{
+    const r=await fetch(`${API}/api/schedule/generate`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({student:{student_name:student.student_name,major:student.major,classification:student.classification,completed_courses:student.completed_courses||[],max_credits:student.max_credits||16,prefers_morning:!!student.prefers_morning,prefers_light_fridays:!!student.prefers_light_fridays,is_athlete:!!student.is_athlete,is_full_time:student.is_full_time!==false},return_alternatives:3})});
+    hideTyping();if(!r.ok){addMsg('ai',`⚠️ HTTP ${r.status}`);return;}
+    const data=await r.json();
+    S.sessionId=data.session_id;S.alternatives=data.alternatives||[data.best];S.activeAlt=0;
+    S.progress=data.progress;S.explanations=buildExplMap(S.alternatives[0]);qMajor(student.major);
+    // Render all tabs so green coloring is correct everywhere immediately
+    renderSchedule();renderProgress();renderCompare();
+    if(S.major) renderMap(S.major);
+    addMsg('ai',`✅ <strong>${data.major}</strong> — ${data.best.total_semesters} semesters, ${data.best.total_credits} credits. Score: ${Math.round(data.best.score.total)}/100`);
+    document.querySelectorAll('.nav-btn')[0].click();
+  }catch(e){hideTyping();addMsg('ai',`⚠️ ${e.message}`);}finally{S.loading=false;}
+}
+
+function buildExplMap(alt){const m={};if(!alt)return m;alt.semesters.forEach(s=>s.courses.forEach(c=>{if(c.explanation)m[c.code]=c.explanation;}));return m;}
+
+function renderSchedule(){
+  if(!S.alternatives.length)return;document.getElementById('empty').style.display='none';
+  const alt=S.alternatives[S.activeAlt];const el=document.getElementById('sch-content');
+  const altsH=S.alternatives.length>1?`<div class="alts-row">${S.alternatives.map((a,i)=>`<div class="alt-card ${i===S.activeAlt?'active':''}" onclick="selectAlt(${i})"><div class="alt-lbl">${a.label}</div><div class="alt-score">${Math.round(a.score.total)}/100</div><div class="alt-meta">${a.total_semesters} sem · ${a.total_credits} cr</div></div>`).join('')}</div>`:'';
+  const warnH=(alt.warnings&&alt.warnings.length)?`<div class="warn-box"><div class="warn-ttl">⚠ Notices</div>${alt.warnings.map(w=>`<div class="warn-item">• ${w}</div>`).join('')}</div>`:'';
+  const semsH=alt.semesters.map((sem,i)=>{
+    const isUp=sem.is_upcoming===true;
+    const hdCls=isUp?'sem-hd upcoming':'sem-hd';
+    const badge=isUp?'<span class="sem-badge up">⬤ Upcoming</span>':'<span class="sem-badge fut">Future</span>';
+    const courses=sem.courses.map(c=>{
+      // Only show real meeting times for upcoming semester
+      const displayTime = isUp ? (c.time||'') : '';
+      const timeHtml = displayTime
+        ? `<div class="ctime">${displayTime}</div>`
+        : (isUp ? '' : '<div class="ctime tbd">Time TBD at enrollment</div>');
+      return `<div class="${courseRowClass(c.code)}" onclick="openModal('${c.code}','${sem.label}')">
+        <div class="cbadge ${courseBadge(c.code,c.type)}">${isDone(c.code)?'done':c.type}</div>
+        <div class="cinfo"><div class="ccode">${c.code}</div><div class="cn">${c.name}</div>${timeHtml}</div>
+        <div class="ccr">${c.credits}cr</div>
+      </div>`;
+    }).join('');
+    return `<div class="sem">
+      <div class="${hdCls}">
+        <div style="display:flex;align-items:center"><div class="sem-name">${sem.label}</div>${badge}</div>
+        <div class="sem-cr">${sem.total_credits} cr</div>
+      </div>
+      <div class="clist">${courses}</div>
+      ${sem.note?`<div class="sem-note">${sem.note}</div>`:''}
+    </div>`;
+  }).join('');
+  el.innerHTML=`<div class="pg-hdr"><div><div class="pg-title">Your <em>Plan</em></div><div class="pg-meta">${alt.total_semesters} sem · ${alt.total_credits} cr · Score ${Math.round(alt.score.total)}/100</div></div><div class="act-row"><button class="abtn pri" onclick="exportPDF()">⬇ PDF</button></div></div>${altsH}<div class="stats"><div class="stat"><div class="stat-n">${alt.total_credits}</div><div class="stat-l">Total</div></div><div class="stat"><div class="stat-n">${alt.total_semesters}</div><div class="stat-l">Semesters</div></div><div class="stat"><div class="stat-n b">${Math.round(alt.score.graduation_speed)}</div><div class="stat-l">Speed</div></div><div class="stat"><div class="stat-n b">${Math.round(alt.score.workload_balance)}</div><div class="stat-l">Balance</div></div></div>${warnH}<div class="grid2">${semsH}</div>`;
+}
+function selectAlt(i){S.activeAlt=i;S.explanations=buildExplMap(S.alternatives[i]);renderSchedule();}
+
+function renderProgress(){
+  const p=S.progress;if(!p)return;document.getElementById('prog-empty').style.display='none';
+  const cb=p.credit_breakdown||{};const t=cb.total||{};const m=cb.major||{};const c=cb.connections||{};const f=cb.free_electives||{};
+  document.getElementById('prog-content').innerHTML=`
+    <div class="pg-hdr"><div><div class="pg-title">Degree <em>Progress</em></div><div class="pg-meta">${p.major} · ${p.progress_pct}% · ${p.graduation_summary}</div></div></div>
+    <div class="cr-box"><div class="box-ttl">Credit Breakdown</div>
+      <div class="cr-row"><div class="cr-lbl">Major</div><div class="cr-bg"><div class="cr-fill" style="width:${Math.min(m.done/(m.target||1)*100,100)}%;background:var(--red)"></div></div><div class="cr-val">${m.done}/${m.target}</div></div>
+      <div class="cr-row"><div class="cr-lbl">Connections</div><div class="cr-bg"><div class="cr-fill" style="width:${Math.min(c.done/(c.target||1)*100,100)}%;background:var(--black)"></div></div><div class="cr-val">${c.done}/${c.target}</div></div>
+      <div class="cr-row"><div class="cr-lbl">Free Electives</div><div class="cr-bg"><div class="cr-fill" style="width:${Math.min(f.done/(f.target||1)*100,100)}%;background:#999"></div></div><div class="cr-val">${f.done}/${f.target}</div></div>
+      <div class="cr-row"><div class="cr-lbl"><strong>Total</strong></div><div class="cr-bg"><div class="cr-fill" style="width:${Math.min(t.done/(t.target||1)*100,100)}%;background:var(--red)"></div></div><div class="cr-val"><strong>${t.done}/${t.target}</strong></div></div>
+    </div>
+    <div class="stats"><div class="stat"><div class="stat-n">${p.completed_courses.length}</div><div class="stat-l">Done</div></div><div class="stat"><div class="stat-n b">${p.remaining_courses.length}</div><div class="stat-l">Remaining</div></div>${p.electives_still_needed?`<div class="stat"><div class="stat-n b">${p.electives_still_needed}</div><div class="stat-l">Electives Needed</div></div>`:''}</div>
+    ${p.prerequisite_gaps.length?`<div class="warn-box"><div class="warn-ttl">Prerequisite Gaps</div>${p.prerequisite_gaps.map(g=>`<div class="warn-item">• <strong>${g.course}</strong> needs ${g.missing_prereqs.join(', ')}</div>`).join('')}</div>`:''}
+    <div style="background:var(--white);border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:14px"><div style="padding:10px 13px;background:var(--gray);font-size:11px;font-weight:800;text-transform:uppercase">✅ Completed — click to un-complete (${p.completed_courses.length})</div><div class="clist">${p.completed_courses.map(c=>`<div class="crow completed" onclick="toggleCompleted('${c.code}',event)" title="Click to mark as not completed"><div class="cbadge cb-done">✓ done</div><div class="cinfo"><div class="ccode">${c.code}</div><div class="cn">${c.name}</div></div><div class="ccr">${c.credits}cr</div></div>`).join('')}</div></div>
+    <div style="background:var(--white);border:1px solid var(--bd);border-radius:10px;overflow:hidden"><div style="padding:10px 13px;background:var(--gray);font-size:11px;font-weight:800;text-transform:uppercase">📋 Remaining — click to mark complete (${p.remaining_courses.length})</div><div class="clist">${p.remaining_courses.map(c=>`<div class="crow" onclick="toggleCompleted('${c.code}',event)" title="Click to mark as completed"><div class="cbadge cb-${c.type==='core'?'core':c.type==='major'?'major':'elective'}">${c.type}</div><div class="cinfo"><div class="ccode">${c.code}</div><div class="cn">${c.name}</div></div><div class="ccr">${c.credits}cr</div></div>`).join('')}</div></div>`;
+}
+
+// ── PREREQ MAP ────────────────────────────────────────────────
+// Single source of truth: S.courses is the catalog (from backend).
+// S.requirements[major] defines which courses matter for this major.
+// We build a graph using the ACTUAL prereqs from S.courses — not inferred ones.
+function buildChains(major){
+  const req=S.requirements[major]; if(!req) return [];
+
+  // All courses relevant to this major (every category)
+  const mc=new Set([
+    ...req.core_connections,
+    ...req.major_required,
+    ...req.major_choice_groups.flatMap(g=>g.options),
+    ...(req.major_electives?.options||[])
+  ]);
+
+  // Also add any prereqs of those courses so chains don't have gaps
+  // e.g. DATA227 is a prereq of ECON300 — add it even if it's in choice_groups
+  mc.forEach(code=>{
+    (S.courses[code]?.prereqs||[]).forEach(p=>{ if(S.courses[p]) mc.add(p); });
+  });
+
+  // Forward edge map: prereq → [courses that require it]
+  const lt={};
+  mc.forEach(code=>{
+    (S.courses[code]?.prereqs||[]).forEach(p=>{
+      if(mc.has(p)){
+        if(!lt[p]) lt[p]=[];
+        if(!lt[p].includes(code)) lt[p].push(code);
+      }
+    });
+  });
+
+  // Roots: in mc, no prereqs that are also in mc
+  const roots=[...mc].filter(c=>{
+    const ps=S.courses[c]?.prereqs||[];
+    return !ps.some(p=>mc.has(p));
+  });
+
+  // Walk forward to find all dependency chains
+  const chains=[];
+  const seen=new Set();
+  roots.forEach(root=>{
+    (function walk(n,path,vis){
+      if(vis.has(n)) return;
+      vis.add(n);
+      const nexts=(lt[n]||[]);
+      if(!nexts.length){
+        if(path.length>1) chains.push([...path]);
+        return;
+      }
+      nexts.forEach(x=>walk(x,[...path,x],new Set(vis)));
+    })(root,[root],new Set());
+  });
+
+  // Deduplicate: keep longest chains, remove chains fully contained in longer ones
+  chains.sort((a,b)=>b.length-a.length);
+  const unique=[];
+  chains.forEach(c=>{
+    const k=c.join('|');
+    if(!unique.some(u=>u.join('|').includes(k))) unique.push(c);
+  });
+  return unique.slice(0,12).map(n=>({
+    t:`${n[0]} → ${n[n.length-1]} (${n.length} courses)`,
+    n
+  }));
+}
+function renderMap(major){
+  if(!S.requirements[major]||!Object.keys(S.courses).length){
+    document.getElementById('map-content').innerHTML='<div class="empty" style="height:40%"><div class="empty-sub">Catalog not loaded — check API connection.</div></div>';return;
+  }
+  const chains=buildChains(major);
+  if(!chains.length){document.getElementById('map-content').innerHTML='<div class="empty" style="height:40%"><div class="empty-sub">No prerequisite chains found.</div></div>';return;}
+  let html='';
+  chains.forEach(ch=>{
+    html+=`<div class="pchain"><div class="pchain-ttl">${ch.t}</div><div class="pflow">`;
+    ch.n.forEach((code,i)=>{
+      const c=S.courses[code]||{};
+      const num=parseInt((code.match(/\d+/)||['0'])[0]);
+      // Completed = green, capstone (400+) = red accent, major = red border, core = black border
+      const cls=isDone(code)?'done':(num>=400?'ncap':(c.type==='major'?'nm':'nc'));
+      const nm=(c.name||code).split(' ').slice(0,3).join(' ');
+      const tooltip=isDone(code)
+        ?`✓ Completed — double-click to un-complete`
+        :`${c.name||code} — click for details, double-click to mark complete`;
+      html+=`<span class="pnode ${cls}" onclick="openModal('${code}','Map')" ondblclick="toggleCompleted('${code}',event)" title="${tooltip}">${code}${isDone(code)?' ✓':''}<br><small style="font-size:8px;opacity:.6">${nm}</small></span>`;
+      if(i<ch.n.length-1) html+=`<span class="parrow">→</span>`;
+    });
+    html+=`</div></div>`;
+  });
+  document.getElementById('map-content').innerHTML=`<div style="padding:4px 0">${html}</div>`;
+  qMajor(major);
+}
+
+// ── COMPARE (dynamic + completed coloring) ──
+function renderCompare(){
+  const ds=S.requirements.data_science,fin=S.requirements.finance;
+  if(!ds||!fin){document.getElementById('cmp-content').innerHTML='<div class="empty" style="height:40%"><div class="empty-sub">Loading...</div></div>';return;}
+  function sec(title,codes){if(!codes||!codes.length)return'';return`<div class="cmp-sec-ttl">${title}</div><div style="background:var(--white);border:1px solid var(--bd);border-radius:10px;overflow:hidden;margin-bottom:10px"><div class="clist">${codes.map(c=>{const info=S.courses[c]||{};const t=info.type||'major';const n=info.name||c;const cr=info.credits||4;return`<div class="${courseRowClass(c)}" onclick="toggleCompleted('${c}',event)" title="${isDone(c)?'✓ Completed — click to undo':'Click to mark completed'}"><div class="cbadge ${courseBadge(c,t)}">${isDone(c)?'✓ done':t}</div><div class="cinfo"><div class="ccode">${c}</div><div class="cn">${n}</div></div><div class="ccr">${cr}cr</div></div>`;}).join('')}</div></div>`;}
+  function col(req,cls,dot){return`<div><div class="cmp-hd ${cls}"><div class="cdot" style="background:${dot}"></div><div class="cmp-ttl">${req.name}</div></div><div class="stats" style="margin-bottom:12px"><div class="stat"><div class="stat-n">${req.total_credits}</div><div class="stat-l">Total</div></div><div class="stat"><div class="stat-n">${req.major_credits}</div><div class="stat-l">Major</div></div></div>${sec('Connections',req.core_connections)}${sec('Required',req.major_required)}${req.major_choice_groups.map(g=>sec('Choose 1: '+g.label,g.options)).join('')}${sec('Electives ('+req.major_electives.count+')',req.major_electives.options)}</div>`;}
+  document.getElementById('cmp-content').innerHTML=`<div class="cmp-grid">${col(ds,'ds','var(--black)')}${col(fin,'fin','var(--red)')}</div>`;
+}
+
+// ── MODAL ──
+async function openModal(code,ctx){
+  let c=S.courses[code];if(!c){try{const r=await fetch(`${API}/api/courses/${code}`);if(r.ok)c=await r.json();}catch{}}
+  if(!c)return;document.getElementById('m-code').textContent=`${code} · ${ctx}`;document.getElementById('m-name').textContent=c.name;
+  const done=isDone(code);const ttype=done?'mt-done':(c.type==='core'?'mt-b':c.type==='major'?'mt-r':'mt-g');
+  const tname=done?'Completed':(c.type==='core'?'Core':c.type==='major'?'Major':'Elective');
+  let extraTag=c.core_protected?'<span class="mtag mt-b">🔒 Mandatory</span>':'';
+  document.getElementById('m-tags').innerHTML=`<span class="mtag ${ttype}">${tname}</span><span class="mtag mt-g">${c.credits} Cr</span>${extraTag}`;
+  const pr=c.prereqs||[];document.getElementById('m-prereqs').innerHTML=pr.length?pr.map((p,i)=>`<span class="pn${isDone(p)?' style=background:var(--done-bg);color:var(--done-text)':''}">${p}${isDone(p)?' ✓':''}</span>${i<pr.length-1?'<span class="pa">→</span>':''}`).join('')+`<span class="pa">→</span><span class="pn">${code}</span>`:'<span style="font-size:11px;color:#ccc">None</span>';
+  document.getElementById('m-offered').innerHTML=(c.offered||[]).map(o=>`<span class="off-badge">${o}</span>`).join('');
+  document.getElementById('m-times').innerHTML=(c.times||[]).map(t=>`<span class="off-badge" style="font-family:monospace;font-size:9px">${t}</span>`).join('');
+  document.getElementById('m-desc').textContent=c.desc||'';
+  const expl=S.explanations[code];if(expl){document.getElementById('m-expl').textContent=expl;document.getElementById('m-expl-wrap').style.display='block';}else document.getElementById('m-expl-wrap').style.display='none';
+  // Toggle button inside modal
+  const toggleDiv = document.getElementById('m-toggle');
+  if (toggleDiv) {
+    if (S.sessionId) {
+      const isDoneNow = isDone(code);
+      toggleDiv.innerHTML = `<button onclick="toggleCompleted('${code}');closeModal();" style="width:100%;padding:10px;border-radius:8px;border:1px solid ${isDoneNow?'var(--red-bd)':'var(--done-bd)'};background:${isDoneNow?'var(--red-dim)':'var(--done-bg)'};color:${isDoneNow?'var(--red)':'var(--done-text)'};font-size:12px;font-weight:700;cursor:pointer">${isDoneNow?'↩ Mark as Not Completed':'✓ Mark as Completed'}</button>`;
+      toggleDiv.style.display = 'block';
+    } else {
+      toggleDiv.style.display = 'none';
+    }
+  }
+  document.getElementById('modal-bg').classList.add('open');
+}
+function closeModal(){document.getElementById('modal-bg').classList.remove('open');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+// ── PDF EXPORT ──
+async function exportPDF(){
+  if(!S.sessionId){addMsg('ai','Generate a schedule first, then export.');return;}
+  try{window.open(`${API}/api/export/pdf/${S.sessionId}`,'_blank');}
+  catch(e){addMsg('ai','PDF export failed: '+e.message);}
+}
+
+// ── TOGGLE COMPLETED (click a course to mark done/undone) ──
+async function toggleCompleted(code, event) {
+  if (event) event.stopPropagation();
+  if (!S.sessionId) { addMsg('ai', 'Load a student profile first.'); return; }
+  try {
+    const r = await fetch(`${API}/api/completed/toggle`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ session_id: S.sessionId, course_code: code })
+    });
+    if (!r.ok) {
+      // Backend returns prerequisite validation errors as 400
+      let errMsg = 'Unknown error';
+      try {
+        const errData = await r.json();
+        errMsg = errData.detail || JSON.stringify(errData);
+      } catch { errMsg = await r.text(); }
+      addMsg('ai', `⚠️ ${errMsg}`);
+      return;
+    }
+    const data = await r.json();
+    S.completedCourses = new Set(data.completed_courses || []);
+    if (data.progress) { S.progress = data.progress; renderProgress(); }
+    if (data.schedule) {
+      S.alternatives = data.schedule.alternatives || [data.schedule.best];
+      S.activeAlt = 0;
+      S.explanations = buildExplMap(S.alternatives[0]);
+      renderSchedule();
+    }
+    if (S.major) { renderMap(S.major); renderCompare(); }
+    addMsg('ai', `${data.action === 'completed' ? '✅' : '↩️'} ${code} ${data.action}.`);
+  } catch (e) { addMsg('ai', `⚠️ Toggle failed: ${e.message}`); }
+}
+
+function clearAll(){
+  S.sessionId=null;S.alternatives=[];S.progress=null;S.explanations={};S.completedCourses=new Set();S.major=null;
+  document.getElementById('chat-msgs').innerHTML=`<div class="msg ai"><div class="ai-row"><div class="ai-dot"></div><div class="ai-tag">Pathfinder</div></div><div class="bubble">Cleared. Tell me your major and year.</div></div>`;
+  document.getElementById('empty').style.display='flex';document.getElementById('sch-content').innerHTML='';
+  document.getElementById('prog-empty').style.display='flex';document.getElementById('prog-content').innerHTML='';
+  // Reset prereq map and compare with cleared completed state
+  document.getElementById('map-content').innerHTML='<div class="empty" style="height:40%"><div class="empty-icon">🔗</div><div class="empty-sub">Select a major.</div></div>';
+  renderCompare();  // re-render compare with empty completedCourses
+  document.querySelectorAll('.stu-card').forEach(c=>c.classList.remove('sel'));qMajor(null);
+}
+
+window.addEventListener('load',init);
+</script>
+</body>
+</html>
